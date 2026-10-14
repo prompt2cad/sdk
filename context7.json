@@ -1,0 +1,15 @@
+{
+  "$schema": "https://context7.com/schema/context7.json",
+  "projectTitle": "Prompt2CAD SDK",
+  "description": "Official Prompt2CAD API SDK and examples for generating dimensioned CAD, modifying imported CAD/3D files, refining projects, selecting AI models and exporting geometry.",
+  "folders": ["docs"],
+  "excludeFolders": ["test", ".github"],
+  "rules": [
+    "Keep Prompt2CAD API keys server-side and read them from PROMPT2CAD_API_KEY.",
+    "Reuse the same idempotency key when retrying the same operation; use a new key for a new refinement.",
+    "Generation is asynchronous. Poll until completed before exporting or refining.",
+    "A paused generation requires an explicit resume; never automatically authorize another paid segment.",
+    "Use model default or deepseek/deepseek-v4.1-flash on generation requests; select it again on each new refinement.",
+    "STEP and IGES are not supported input formats. Use supported CAD uploads and cadFileIds."
+  ]
+}

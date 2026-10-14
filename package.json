@@ -1,0 +1,18 @@
+{
+  "name": "@prompt2cad/sdk",
+  "version": "0.1.0",
+  "description": "Official Prompt2CAD API client for CAD generation, refinement, imports and exports",
+  "type": "module",
+  "main": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": { ".": { "types": "./src/index.d.ts", "import": "./src/index.js" } },
+  "files": ["src", "README.md", "LICENSE"],
+  "engines": { "node": ">=22" },
+  "scripts": { "test": "node --test", "check": "node --check src/index.js && node --check examples/generate.mjs && node --check examples/modify-cad.mjs" },
+  "repository": { "type": "git", "url": "https://github.com/prompt2cad/sdk.git" },
+  "homepage": "https://prompt2cad.com/documentation/integrations/api",
+  "bugs": { "url": "https://github.com/prompt2cad/sdk/issues" },
+  "license": "MIT",
+  "author": "Prompt2CAD <support@prompt2cad.com>",
+  "keywords": ["cad", "ai-cad", "prompt2cad", "step", "stl", "3d-printing", "sdk"]
+}

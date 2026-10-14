@@ -1,0 +1,9 @@
+node_modules/
+.env
+.env.*
+!.env.example
+*.stl
+*.step
+*.glb
+*.png
+__pycache__/
