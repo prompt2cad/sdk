@@ -101,6 +101,7 @@ Actual usage, caching and paid auxiliary tools affect cost. See [models and bill
 - [Model selection and credits](docs/models-and-billing.md)
 - [SDK methods and polling behavior](docs/sdk-reference.md)
 - [Agent integration instructions](AGENTS.md)
+- [Official Postman collection and manual workflows](postman/README.md)
 - [Hosted API quickstart](https://prompt2cad.com/documentation/integrations/api)
 - [Live OpenAPI specification](https://prompt2cad.com/api/v1/openapi.json)
 

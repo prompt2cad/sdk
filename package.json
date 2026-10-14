@@ -8,7 +8,7 @@
   "exports": { ".": { "types": "./src/index.d.ts", "import": "./src/index.js" } },
   "files": ["src", "README.md", "LICENSE"],
   "engines": { "node": ">=22" },
-  "scripts": { "test": "node --test", "check": "node --check src/index.js && node --check examples/generate.mjs && node --check examples/modify-cad.mjs" },
+  "scripts": { "test": "node --test", "check": "node --check src/index.js && node --check examples/generate.mjs && node --check examples/modify-cad.mjs && node --check scripts/generate-postman.mjs" },
   "repository": { "type": "git", "url": "https://github.com/prompt2cad/sdk.git" },
   "homepage": "https://prompt2cad.com/documentation/integrations/api",
   "bugs": { "url": "https://github.com/prompt2cad/sdk/issues" },

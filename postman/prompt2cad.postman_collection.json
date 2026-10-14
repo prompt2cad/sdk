@@ -1,0 +1,995 @@
+{
+  "info": {
+    "name": "Prompt2CAD API — Generate, Modify CAD, Refine and Export",
+    "description": "Official Prompt2CAD API workflows. Set api_key in a private environment or replace the bearer token with a Postman Vault reference. Run requests one at a time in the documented order; do not Run All because generations are asynchronous and spend credits. run_id is generated once if empty; retain it when retrying unchanged operations and change it for a new workflow. Default model: default. Budget model: deepseek/deepseek-v4.1-flash. Docs: https://prompt2cad.com/documentation/integrations/api · SDK: https://github.com/prompt2cad/sdk · OpenAPI: https://prompt2cad.com/api/v1/openapi.json. Exports and uploads add no customer credit debit; generation and paid auxiliary tools use the account credit balance.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{api_key}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "https://prompt2cad.com/api/v1",
+      "type": "string"
+    },
+    {
+      "key": "origin",
+      "value": "https://prompt2cad.com",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "run_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "project_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "generation_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "generation_status",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "export_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "download_path",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cad_file_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "image_file_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cad_file_name",
+      "value": "plate.stl",
+      "type": "string"
+    },
+    {
+      "key": "cad_units",
+      "value": "mm",
+      "type": "string"
+    },
+    {
+      "key": "model",
+      "value": "default",
+      "type": "string"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.variables.get(\"run_id\")) pm.collectionVariables.set(\"run_id\", pm.variables.replaceIn(\"{{$guid}}\"));"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "01 — Credits and project",
+      "item": [
+        {
+          "name": "Read account credits",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/usage"
+            },
+            "description": "Read account credits and limits without starting generation."
+          },
+          "event": [],
+          "response": []
+        },
+        {
+          "name": "Create a generation project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{run_id}}:project"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects"
+            },
+            "description": "Creates a project and stores project_id. No CAD generation or credit debit occurs here.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Prompt2CAD integration example\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.id) pm.collectionVariables.set(\"project_id\", data.id);",
+                  "  ",
+                  "  [\"generation_id\", \"generation_status\", \"export_id\", \"download_path\"].forEach(key => pm.collectionVariables.unset(key));",
+                  "  ",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 — Generate and refine",
+      "description": "Generate, then poll to completion before refining. The refinement example selects the budget model explicitly.",
+      "item": [
+        {
+          "name": "Generate a mounting bracket",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{run_id}}:generate"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/generations"
+            },
+            "description": "Starts a credit-consuming generation/refinement. Saves generation_id. Poll manually every five seconds; 202 means accepted, not completed.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Create an L bracket, 100 mm wide, with 60 mm legs, 6 mm walls and two 8 mm mounting holes.\",\n  \"model\": \"{{model}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"project_id\")) { pm.execution.skipRequest(); throw new Error(\"Set project_id by completing the preceding workflow step first.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.id) pm.collectionVariables.set(\"generation_id\", data.id);",
+                  "  if (data.status) pm.collectionVariables.set(\"generation_status\", data.status);",
+                  "  ",
+                  "  ",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Poll initial generation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/generations/{{generation_id}}"
+            },
+            "description": "Read-only status and usage. Send every five seconds until completed. Stop on paused, awaiting_input, failed or cancelled. This collection never resumes a paid segment automatically."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"project_id\")) { pm.execution.skipRequest(); throw new Error(\"Set project_id by completing the preceding workflow step first.\"); }",
+                  "if (!pm.variables.get(\"generation_id\")) { pm.execution.skipRequest(); throw new Error(\"Set generation_id by completing the preceding workflow step first.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.id) pm.collectionVariables.set(\"generation_id\", data.id);",
+                  "  if (data.status) pm.collectionVariables.set(\"generation_status\", data.status);",
+                  "  ",
+                  "  ",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Refine with DeepSeek V4.1 Flash",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{run_id}}:refine"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/generations"
+            },
+            "description": "Starts a credit-consuming generation/refinement. Saves generation_id. Poll manually every five seconds; 202 means accepted, not completed.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Increase the bracket width to 120 mm. Keep the leg lengths, wall thickness and hole diameters unchanged.\",\n  \"model\": \"deepseek/deepseek-v4.1-flash\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"project_id\")) { pm.execution.skipRequest(); throw new Error(\"Set project_id by completing the preceding workflow step first.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"generation_status\") !== \"completed\") { pm.execution.skipRequest(); throw new Error(\"Poll the generation until completed before refining or exporting.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.id) pm.collectionVariables.set(\"generation_id\", data.id);",
+                  "  if (data.status) pm.collectionVariables.set(\"generation_status\", data.status);",
+                  "  ",
+                  "  ",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Poll refinement",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/generations/{{generation_id}}"
+            },
+            "description": "Read-only status and usage. Send every five seconds until completed. Stop on paused, awaiting_input, failed or cancelled. This collection never resumes a paid segment automatically."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"project_id\")) { pm.execution.skipRequest(); throw new Error(\"Set project_id by completing the preceding workflow step first.\"); }",
+                  "if (!pm.variables.get(\"generation_id\")) { pm.execution.skipRequest(); throw new Error(\"Set generation_id by completing the preceding workflow step first.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.id) pm.collectionVariables.set(\"generation_id\", data.id);",
+                  "  if (data.status) pm.collectionVariables.set(\"generation_status\", data.status);",
+                  "  ",
+                  "  ",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 — Modify an existing CAD file",
+      "description": "Creates a separate project. Choose a local plate.stl in the binary upload body. Check source units and bounds before generating. STEP/IGES are not supported inputs.",
+      "item": [
+        {
+          "name": "Create a CAD modification project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{run_id}}:cad-project"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects"
+            },
+            "description": "Creates a project and stores project_id. No CAD generation or credit debit occurs here.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Prompt2CAD integration example\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.id) pm.collectionVariables.set(\"project_id\", data.id);",
+                  "  ",
+                  "  [\"generation_id\", \"generation_status\", \"export_id\", \"download_path\"].forEach(key => pm.collectionVariables.unset(key));",
+                  "  ",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Upload CAD source bytes",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/octet-stream"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/cad-files?fileName={{cad_file_name}}&units={{cad_units}}"
+            },
+            "description": "Select a local file in Body → binary. Supported: DWG, DXF, SKP, OBJ, STL, GLB and self-contained glTF. Source 10 MiB, normalized geometry 8 MiB, retained sources 16 MiB/project. Each retry creates a new upload ID.",
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": ""
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.id) pm.collectionVariables.set(\"cad_file_id\", data.id);",
+                  "  ",
+                  "  ",
+                  "  ",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Modify the imported plate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{run_id}}:cad-modify"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/generations"
+            },
+            "description": "Starts a credit-consuming generation/refinement. Saves generation_id. Poll manually every five seconds; 202 means accepted, not completed.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Use the attached plate as the base. Add two 6 mm through-holes, centered across its width and spaced 60 mm apart along its length. Preserve the outer shape and thickness.\",\n  \"model\": \"deepseek/deepseek-v4.1-flash\",\n  \"cadFileIds\": [\n    \"{{cad_file_id}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"project_id\")) { pm.execution.skipRequest(); throw new Error(\"Set project_id by completing the preceding workflow step first.\"); }",
+                  "if (!pm.variables.get(\"cad_file_id\")) { pm.execution.skipRequest(); throw new Error(\"Set cad_file_id by completing the preceding workflow step first.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.id) pm.collectionVariables.set(\"generation_id\", data.id);",
+                  "  if (data.status) pm.collectionVariables.set(\"generation_status\", data.status);",
+                  "  ",
+                  "  ",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Poll CAD modification",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/generations/{{generation_id}}"
+            },
+            "description": "Read-only status and usage. Send every five seconds until completed. Stop on paused, awaiting_input, failed or cancelled. This collection never resumes a paid segment automatically."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"project_id\")) { pm.execution.skipRequest(); throw new Error(\"Set project_id by completing the preceding workflow step first.\"); }",
+                  "if (!pm.variables.get(\"generation_id\")) { pm.execution.skipRequest(); throw new Error(\"Set generation_id by completing the preceding workflow step first.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.id) pm.collectionVariables.set(\"generation_id\", data.id);",
+                  "  if (data.status) pm.collectionVariables.set(\"generation_status\", data.status);",
+                  "  ",
+                  "  ",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Refine the imported plate",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{run_id}}:cad-refine"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/generations"
+            },
+            "description": "Starts a credit-consuming generation/refinement. Saves generation_id. Poll manually every five seconds; 202 means accepted, not completed.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Increase the two hole diameters to 8 mm; preserve their centers and the plate. Use the existing project source without re-uploading.\",\n  \"model\": \"deepseek/deepseek-v4.1-flash\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"project_id\")) { pm.execution.skipRequest(); throw new Error(\"Set project_id by completing the preceding workflow step first.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"generation_status\") !== \"completed\") { pm.execution.skipRequest(); throw new Error(\"Poll the generation until completed before refining or exporting.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.id) pm.collectionVariables.set(\"generation_id\", data.id);",
+                  "  if (data.status) pm.collectionVariables.set(\"generation_status\", data.status);",
+                  "  ",
+                  "  ",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Poll CAD refinement",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/generations/{{generation_id}}"
+            },
+            "description": "Read-only status and usage. Send every five seconds until completed. Stop on paused, awaiting_input, failed or cancelled. This collection never resumes a paid segment automatically."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"project_id\")) { pm.execution.skipRequest(); throw new Error(\"Set project_id by completing the preceding workflow step first.\"); }",
+                  "if (!pm.variables.get(\"generation_id\")) { pm.execution.skipRequest(); throw new Error(\"Set generation_id by completing the preceding workflow step first.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.id) pm.collectionVariables.set(\"generation_id\", data.id);",
+                  "  if (data.status) pm.collectionVariables.set(\"generation_status\", data.status);",
+                  "  ",
+                  "  ",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "04 — Optional image reference",
+      "description": "Creates a separate project. Choose a PNG in the binary body; for JPEG/WebP adjust Content-Type accordingly. Include physical dimensions in the prompt.",
+      "item": [
+        {
+          "name": "Create an image-reference project",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{run_id}}:image-project"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects"
+            },
+            "description": "Creates a project and stores project_id. No CAD generation or credit debit occurs here.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Prompt2CAD integration example\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.id) pm.collectionVariables.set(\"project_id\", data.id);",
+                  "  ",
+                  "  [\"generation_id\", \"generation_status\", \"export_id\", \"download_path\"].forEach(key => pm.collectionVariables.unset(key));",
+                  "  ",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Upload reference image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "image/png"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/files"
+            },
+            "description": "Select a local PNG using Body → binary. Stores image_file_id. Image limits: 20 MiB and 40 megapixels; normalized to JPEG at a 768-pixel longest side.",
+            "body": {
+              "mode": "file",
+              "file": {
+                "src": ""
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.id) pm.collectionVariables.set(\"image_file_id\", data.id);",
+                  "  ",
+                  "  ",
+                  "  ",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Generate from the reference image",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{run_id}}:image-generate"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/generations"
+            },
+            "description": "Starts a credit-consuming generation/refinement. Saves generation_id. Poll manually every five seconds; 202 means accepted, not completed.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Model the bracket shown in this reference. Its base is 100 mm wide; use 6 mm walls and 8 mm mounting holes.\",\n  \"model\": \"{{model}}\",\n  \"imageFileIds\": [\n    \"{{image_file_id}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"project_id\")) { pm.execution.skipRequest(); throw new Error(\"Set project_id by completing the preceding workflow step first.\"); }",
+                  "if (!pm.variables.get(\"image_file_id\")) { pm.execution.skipRequest(); throw new Error(\"Set image_file_id by completing the preceding workflow step first.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.id) pm.collectionVariables.set(\"generation_id\", data.id);",
+                  "  if (data.status) pm.collectionVariables.set(\"generation_status\", data.status);",
+                  "  ",
+                  "  ",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Poll image-reference generation",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/generations/{{generation_id}}"
+            },
+            "description": "Read-only status and usage. Send every five seconds until completed. Stop on paused, awaiting_input, failed or cancelled. This collection never resumes a paid segment automatically."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"project_id\")) { pm.execution.skipRequest(); throw new Error(\"Set project_id by completing the preceding workflow step first.\"); }",
+                  "if (!pm.variables.get(\"generation_id\")) { pm.execution.skipRequest(); throw new Error(\"Set generation_id by completing the preceding workflow step first.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.id) pm.collectionVariables.set(\"generation_id\", data.id);",
+                  "  if (data.status) pm.collectionVariables.set(\"generation_status\", data.status);",
+                  "  ",
+                  "  ",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "05 — Export the completed revision",
+      "description": "Exports the current completed generation. Immutable snapshot; later changes do not alter this export. Artifacts expire after seven days. Change formats to any supported output as needed.",
+      "item": [
+        {
+          "name": "Request STEP, STL and PNG exports",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Idempotency-Key",
+                "value": "{{run_id}}:export:{{generation_id}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/exports"
+            },
+            "description": "Requests three formats. OBJ is ZIP/MTL; DXF is 3D geometry; PNG is a viewport preview. Export each completed generation with a distinct operation key.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"generationId\": \"{{generation_id}}\",\n  \"formats\": [\n    \"step\",\n    \"stl\",\n    \"png\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"project_id\")) { pm.execution.skipRequest(); throw new Error(\"Set project_id by completing the preceding workflow step first.\"); }",
+                  "if (!pm.variables.get(\"generation_id\")) { pm.execution.skipRequest(); throw new Error(\"Set generation_id by completing the preceding workflow step first.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.variables.get(\"generation_status\") !== \"completed\") { pm.execution.skipRequest(); throw new Error(\"Poll the generation until completed before refining or exporting.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  if (data.id) pm.collectionVariables.set(\"export_id\", data.id);",
+                  "  ",
+                  "  ",
+                  "  pm.collectionVariables.unset(\"download_path\");",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Poll export and select a download",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/exports/{{export_id}}"
+            },
+            "description": "Read export status and check every artifact: individual formats can fail. Saves the first successful artifact download path; edit download_path to download another completed artifact."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"project_id\")) { pm.execution.skipRequest(); throw new Error(\"Set project_id by completing the preceding workflow step first.\"); }",
+                  "if (!pm.variables.get(\"export_id\")) { pm.execution.skipRequest(); throw new Error(\"Set export_id by completing the preceding workflow step first.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (pm.response.code >= 200 && pm.response.code < 300) {",
+                  "  const data = pm.response.json();",
+                  "  const artifact = (data.artifacts || []).find(item => item.status === \"completed\" && /^\\/api\\/v1\\/artifacts\\/[^/]+\\/download$/.test(item.downloadUrl || \"\"));",
+                  "  if (artifact) pm.collectionVariables.set(\"download_path\", artifact.downloadUrl);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "Download a completed artifact",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{origin}}{{download_path}}"
+            },
+            "description": "Authenticated binary download. Use Send and Download in Postman to save it locally. Artifacts are retained for seven days."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.variables.get(\"download_path\")) { pm.execution.skipRequest(); throw new Error(\"Set download_path by completing the preceding workflow step first.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!/^\\/api\\/v1\\/artifacts\\/[^/]+\\/download$/.test(pm.variables.get(\"download_path\"))) { pm.execution.skipRequest(); throw new Error(\"Use a download path returned by this API export.\"); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    }
+  ]
+}
