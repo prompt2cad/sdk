@@ -1,5 +1,8 @@
 # Official Prompt2CAD Postman collection
 
+- [Public Postman API Network workspace](https://www.postman.com/prompt2cad/prompt2cad-api/overview)
+- [Published API documentation](https://documenter.getpostman.com/view/58957039/2sBYHRVh9f)
+
 Import [prompt2cad.postman_collection.json](prompt2cad.postman_collection.json) in
 Postman. This collection contains manual workflows for generation, refinement,
 CAD imports/modification, image references, export polling and artifact download.
