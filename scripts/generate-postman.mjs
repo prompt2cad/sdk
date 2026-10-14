@@ -19,12 +19,19 @@ if (pm.response.code >= 200 && pm.response.code < 300) {
 const requireVariables = keys => script("prerequest", keys.map(key => `if (!pm.variables.get("${key}")) { pm.execution.skipRequest(); throw new Error("Set ${key} by completing the preceding workflow step first."); }`).join("\n"));
 const completed = script("prerequest", 'if (pm.variables.get("generation_status") !== "completed") { pm.execution.skipRequest(); throw new Error("Poll the generation until completed before refining or exporting."); }');
 function request(name, method, path, description, { body, key, events = [], binary = false, headers = [] } = {}) {
+  const [pathname, queryString] = path.split("?");
+  const url = path.startsWith("{{origin}}") ? path : {
+    raw: `{{base_url}}${path}`,
+    host: ["{{base_url}}"],
+    path: pathname.replace(/^\//, "").split("/"),
+    ...(queryString ? { query: queryString.split("&").map(pair => { const [key, value] = pair.split("="); return { key, value }; }) } : {}),
+  };
   return { name, request: {
     method, header: [
       ...(key ? [{ key: "Idempotency-Key", value: `{{run_id}}:${key}` }] : []),
       ...(body ? [{ key: "Content-Type", value: "application/json" }] : []), ...headers,
     ],
-    url: { raw: path.startsWith("{{origin}}") ? path : `{{base_url}}${path}` }, description,
+    url, description,
     ...(body ? { body: { mode: "raw", raw: JSON.stringify(body, null, 2), options: { raw: { language: "json" } } } } : {}),
     ...(binary ? { body: { mode: "file", file: { src: "" } } } : {}),
   }, event: events, response: [] };
@@ -41,6 +48,7 @@ const poll = name => request(name, "GET", "/projects/{{project_id}}/generations/
 });
 const collection = {
   info: {
+    _postman_id: "f46baf25-4732-4cc1-b87b-e921f852c9d2",
     name: "Prompt2CAD API — Generate, Modify CAD, Refine and Export",
     description: "Official Prompt2CAD API workflows. Set api_key in a private environment or replace the bearer token with a Postman Vault reference. Run requests one at a time in the documented order; do not Run All because generations are asynchronous and spend credits. run_id is generated once if empty; retain it when retrying unchanged operations and change it for a new workflow. Default model: default. Budget model: deepseek/deepseek-v4.1-flash. Docs: https://prompt2cad.com/documentation/integrations/api · SDK: https://github.com/prompt2cad/sdk · OpenAPI: https://prompt2cad.com/api/v1/openapi.json. Exports and uploads add no customer credit debit; generation and paid auxiliary tools use the account credit balance.",
     schema: "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",

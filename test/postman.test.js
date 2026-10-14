@@ -19,6 +19,12 @@ test("public collection has placeholders, stable operation identities and binary
     assert.match(item.request.header.find(header => header.key === "Idempotency-Key").value, /^\{\{run_id\}\}:/);
   }
   assert.equal(requests.find(item => item.name === "Upload CAD source bytes").request.body.mode, "file");
+  for (const item of requests.filter(item => typeof item.request.url === "object")) {
+    assert.deepEqual(item.request.url.host, ["{{base_url}}"]);
+    assert(item.request.url.path.length > 0);
+    assert(item.request.url.raw.startsWith("{{base_url}}/"));
+  }
+  assert.equal(requests.find(item => item.name === "Upload CAD source bytes").request.url.query[0].key, "fileName");
 });
 test("failed submissions do not overwrite generation IDs or state", () => {
   const item = requests.find(item => item.name === "Generate a mounting bracket");

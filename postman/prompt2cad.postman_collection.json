@@ -1,5 +1,6 @@
 {
   "info": {
+    "_postman_id": "f46baf25-4732-4cc1-b87b-e921f852c9d2",
     "name": "Prompt2CAD API — Generate, Modify CAD, Refine and Export",
     "description": "Official Prompt2CAD API workflows. Set api_key in a private environment or replace the bearer token with a Postman Vault reference. Run requests one at a time in the documented order; do not Run All because generations are asynchronous and spend credits. run_id is generated once if empty; retain it when retrying unchanged operations and change it for a new workflow. Default model: default. Budget model: deepseek/deepseek-v4.1-flash. Docs: https://prompt2cad.com/documentation/integrations/api · SDK: https://github.com/prompt2cad/sdk · OpenAPI: https://prompt2cad.com/api/v1/openapi.json. Exports and uploads add no customer credit debit; generation and paid auxiliary tools use the account credit balance.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
@@ -107,7 +108,13 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/usage"
+              "raw": "{{base_url}}/usage",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "usage"
+              ]
             },
             "description": "Read account credits and limits without starting generation."
           },
@@ -129,7 +136,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/projects"
+              "raw": "{{base_url}}/projects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects"
+              ]
             },
             "description": "Creates a project and stores project_id. No CAD generation or credit debit occurs here.",
             "body": {
@@ -182,7 +195,15 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/projects/{{project_id}}/generations"
+              "raw": "{{base_url}}/projects/{{project_id}}/generations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects",
+                "{{project_id}}",
+                "generations"
+              ]
             },
             "description": "Starts a credit-consuming generation/refinement. Saves generation_id. Poll manually every five seconds; 202 means accepted, not completed.",
             "body": {
@@ -229,7 +250,16 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/projects/{{project_id}}/generations/{{generation_id}}"
+              "raw": "{{base_url}}/projects/{{project_id}}/generations/{{generation_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects",
+                "{{project_id}}",
+                "generations",
+                "{{generation_id}}"
+              ]
             },
             "description": "Read-only status and usage. Send every five seconds until completed. Stop on paused, awaiting_input, failed or cancelled. This collection never resumes a paid segment automatically."
           },
@@ -277,7 +307,15 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/projects/{{project_id}}/generations"
+              "raw": "{{base_url}}/projects/{{project_id}}/generations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects",
+                "{{project_id}}",
+                "generations"
+              ]
             },
             "description": "Starts a credit-consuming generation/refinement. Saves generation_id. Poll manually every five seconds; 202 means accepted, not completed.",
             "body": {
@@ -333,7 +371,16 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/projects/{{project_id}}/generations/{{generation_id}}"
+              "raw": "{{base_url}}/projects/{{project_id}}/generations/{{generation_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects",
+                "{{project_id}}",
+                "generations",
+                "{{generation_id}}"
+              ]
             },
             "description": "Read-only status and usage. Send every five seconds until completed. Stop on paused, awaiting_input, failed or cancelled. This collection never resumes a paid segment automatically."
           },
@@ -387,7 +434,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/projects"
+              "raw": "{{base_url}}/projects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects"
+              ]
             },
             "description": "Creates a project and stores project_id. No CAD generation or credit debit occurs here.",
             "body": {
@@ -430,7 +483,23 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/cad-files?fileName={{cad_file_name}}&units={{cad_units}}"
+              "raw": "{{base_url}}/cad-files?fileName={{cad_file_name}}&units={{cad_units}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cad-files"
+              ],
+              "query": [
+                {
+                  "key": "fileName",
+                  "value": "{{cad_file_name}}"
+                },
+                {
+                  "key": "units",
+                  "value": "{{cad_units}}"
+                }
+              ]
             },
             "description": "Select a local file in Body → binary. Supported: DWG, DXF, SKP, OBJ, STL, GLB and self-contained glTF. Source 10 MiB, normalized geometry 8 MiB, retained sources 16 MiB/project. Each retry creates a new upload ID.",
             "body": {
@@ -474,7 +543,15 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/projects/{{project_id}}/generations"
+              "raw": "{{base_url}}/projects/{{project_id}}/generations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects",
+                "{{project_id}}",
+                "generations"
+              ]
             },
             "description": "Starts a credit-consuming generation/refinement. Saves generation_id. Poll manually every five seconds; 202 means accepted, not completed.",
             "body": {
@@ -522,7 +599,16 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/projects/{{project_id}}/generations/{{generation_id}}"
+              "raw": "{{base_url}}/projects/{{project_id}}/generations/{{generation_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects",
+                "{{project_id}}",
+                "generations",
+                "{{generation_id}}"
+              ]
             },
             "description": "Read-only status and usage. Send every five seconds until completed. Stop on paused, awaiting_input, failed or cancelled. This collection never resumes a paid segment automatically."
           },
@@ -570,7 +656,15 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/projects/{{project_id}}/generations"
+              "raw": "{{base_url}}/projects/{{project_id}}/generations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects",
+                "{{project_id}}",
+                "generations"
+              ]
             },
             "description": "Starts a credit-consuming generation/refinement. Saves generation_id. Poll manually every five seconds; 202 means accepted, not completed.",
             "body": {
@@ -626,7 +720,16 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/projects/{{project_id}}/generations/{{generation_id}}"
+              "raw": "{{base_url}}/projects/{{project_id}}/generations/{{generation_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects",
+                "{{project_id}}",
+                "generations",
+                "{{generation_id}}"
+              ]
             },
             "description": "Read-only status and usage. Send every five seconds until completed. Stop on paused, awaiting_input, failed or cancelled. This collection never resumes a paid segment automatically."
           },
@@ -680,7 +783,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/projects"
+              "raw": "{{base_url}}/projects",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects"
+              ]
             },
             "description": "Creates a project and stores project_id. No CAD generation or credit debit occurs here.",
             "body": {
@@ -723,7 +832,13 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/files"
+              "raw": "{{base_url}}/files",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "files"
+              ]
             },
             "description": "Select a local PNG using Body → binary. Stores image_file_id. Image limits: 20 MiB and 40 megapixels; normalized to JPEG at a 768-pixel longest side.",
             "body": {
@@ -767,7 +882,15 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/projects/{{project_id}}/generations"
+              "raw": "{{base_url}}/projects/{{project_id}}/generations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects",
+                "{{project_id}}",
+                "generations"
+              ]
             },
             "description": "Starts a credit-consuming generation/refinement. Saves generation_id. Poll manually every five seconds; 202 means accepted, not completed.",
             "body": {
@@ -815,7 +938,16 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/projects/{{project_id}}/generations/{{generation_id}}"
+              "raw": "{{base_url}}/projects/{{project_id}}/generations/{{generation_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects",
+                "{{project_id}}",
+                "generations",
+                "{{generation_id}}"
+              ]
             },
             "description": "Read-only status and usage. Send every five seconds until completed. Stop on paused, awaiting_input, failed or cancelled. This collection never resumes a paid segment automatically."
           },
@@ -869,7 +1001,15 @@
               }
             ],
             "url": {
-              "raw": "{{base_url}}/projects/{{project_id}}/exports"
+              "raw": "{{base_url}}/projects/{{project_id}}/exports",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects",
+                "{{project_id}}",
+                "exports"
+              ]
             },
             "description": "Requests three formats. OBJ is ZIP/MTL; DXF is 3D geometry; PNG is a viewport preview. Export each completed generation with a distinct operation key.",
             "body": {
@@ -926,7 +1066,16 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{base_url}}/projects/{{project_id}}/exports/{{export_id}}"
+              "raw": "{{base_url}}/projects/{{project_id}}/exports/{{export_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "projects",
+                "{{project_id}}",
+                "exports",
+                "{{export_id}}"
+              ]
             },
             "description": "Read export status and check every artifact: individual formats can fail. Saves the first successful artifact download path; edit download_path to download another completed artifact."
           },
@@ -962,9 +1111,7 @@
           "request": {
             "method": "GET",
             "header": [],
-            "url": {
-              "raw": "{{origin}}{{download_path}}"
-            },
+            "url": "{{origin}}{{download_path}}",
             "description": "Authenticated binary download. Use Send and Download in Postman to save it locally. Artifacts are retained for seven days."
           },
           "event": [
